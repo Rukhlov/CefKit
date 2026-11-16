@@ -255,7 +255,8 @@ internal sealed class Report
 }
 
 /// <summary>
-/// CEF sub-processes of this run: count and private memory.
+/// CEF sub-processes of this run: count and private memory (private bytes on Windows, private pages of
+/// /proc/pid/smaps_rollup on Linux).
 /// </summary>
 internal static class Processes
 {
@@ -264,14 +265,35 @@ internal static class Processes
         var name = Path.GetFileNameWithoutExtension(subprocess);
         var self = Environment.ProcessId;
         var children = Process.GetProcessesByName(name).Where(p => p.Id != self).ToList();
-        var childMemory = children.Sum(p => p.PrivateMemorySize64) / (1024.0 * 1024);
+        var childMemory = children.Sum(PrivateBytes) / (1024.0 * 1024);
         using var current = Process.GetCurrentProcess();
-        var ownMemory = current.PrivateMemorySize64 / (1024.0 * 1024);
+        var ownMemory = PrivateBytes(current) / (1024.0 * 1024);
         foreach (var child in children)
         {
             child.Dispose();
         }
 
         return $"processes: {children.Count} {name}, private memory {childMemory:F0} MB in sub-processes, {ownMemory:F0} MB in this process";
+    }
+
+    private static long PrivateBytes(Process process)
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return process.PrivateMemorySize64;
+        }
+
+        // PrivateMemorySize64 on Linux counts mapped address space; private pages are what the process owns
+        try
+        {
+            var kilobytes = File.ReadLines($"/proc/{process.Id}/smaps_rollup")
+                .Where(l => l.StartsWith("Private_Clean:", StringComparison.Ordinal) || l.StartsWith("Private_Dirty:", StringComparison.Ordinal))
+                .Sum(l => long.Parse(l.Split(' ', StringSplitOptions.RemoveEmptyEntries)[1], CultureInfo.InvariantCulture));
+            return kilobytes * 1024;
+        }
+        catch (IOException)
+        {
+            return 0;
+        }
     }
 }

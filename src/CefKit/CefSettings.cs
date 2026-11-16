@@ -101,6 +101,13 @@ public sealed class CefSettings
     public bool DisableSignalHandlers { get; set; } = OperatingSystem.IsLinux();
 
     /// <summary>
+    /// Linux: start sub-processes through Chromium's zygote. False by default: CEF then starts every sub-process
+    /// directly (--no-zygote on the process command line, ignored with <see cref="CommandLineArgsDisabled"/>),
+    /// which needs <see cref="NoSandbox"/>; with the NativeAOT helper the zygote does not launch children yet.
+    /// </summary>
+    public bool LinuxZygote { get; set; }
+
+    /// <summary>
     /// Fills a zeroed cef_settings_t; strings are CEF copies, free them with <see cref="Clear"/>.
     /// </summary>
     internal unsafe void CopyTo(cef_settings_t* settings)

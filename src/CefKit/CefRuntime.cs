@@ -112,8 +112,9 @@ public static unsafe partial class CefRuntime
         try
         {
             settings.CopyTo(&native);
+            var arguments = OperatingSystem.IsLinux() && !settings.LinuxZygote ? CreateLinuxMainArgs("--no-zygote") : GetMainArgs();
             var application = app is null ? null : (cef_app_t*)app.AddRefNative();
-            var initialized = Methods.cef_initialize(GetMainArgs(), &native, application, null) != 0;
+            var initialized = Methods.cef_initialize(arguments, &native, application, null) != 0;
             s_initialized = initialized;
             return initialized;
         }
@@ -247,23 +248,31 @@ public static unsafe partial class CefRuntime
             }
             else
             {
-                // argv as CEF parses it: the executable, then the arguments (with --type=... in sub-processes)
-                var arguments = Environment.GetCommandLineArgs();
-                var argv = (sbyte**)NativeMemory.AllocZeroed((nuint)((arguments.Length + 1) * sizeof(nint)));
-                for (var i = 0; i < arguments.Length; i++)
-                {
-                    var value = i == 0 ? Environment.ProcessPath ?? arguments[0] : arguments[i];
-                    argv[i] = (sbyte*)Marshal.StringToCoTaskMemUTF8(value);
-                }
-
-                var args = (Interop.Linux.cef_main_args_t*)NativeMemory.AllocZeroed((nuint)sizeof(Interop.Linux.cef_main_args_t));
-                args->argc = arguments.Length;
-                args->argv = argv;
-                s_mainArgs = (nint)args;
+                s_mainArgs = (nint)CreateLinuxMainArgs();
             }
 
             return (void*)s_mainArgs;
         }
+    }
+
+    /// <summary>
+    /// Linux cef_main_args_t: argv as CEF parses it, the executable and the arguments (--type=... in sub-processes),
+    /// plus extra switches. Kept for the process lifetime: Chromium may keep pointers into argv.
+    /// </summary>
+    private static Interop.Linux.cef_main_args_t* CreateLinuxMainArgs(params string[] extraSwitches)
+    {
+        var arguments = Environment.GetCommandLineArgs().Concat(extraSwitches).ToArray();
+        var argv = (sbyte**)NativeMemory.AllocZeroed((nuint)((arguments.Length + 1) * sizeof(nint)));
+        for (var i = 0; i < arguments.Length; i++)
+        {
+            var value = i == 0 ? Environment.ProcessPath ?? arguments[0] : arguments[i];
+            argv[i] = (sbyte*)Marshal.StringToCoTaskMemUTF8(value);
+        }
+
+        var args = (Interop.Linux.cef_main_args_t*)NativeMemory.AllocZeroed((nuint)sizeof(Interop.Linux.cef_main_args_t));
+        args->argc = arguments.Length;
+        args->argv = argv;
+        return args;
     }
 
     [LibraryImport("kernel32.dll", EntryPoint = "GetModuleHandleW", StringMarshalling = StringMarshalling.Utf16)]

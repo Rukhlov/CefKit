@@ -14,8 +14,8 @@ Windows and Linux x64.
 - **No C++/CLI, no wrapper DLL.** Plain P/Invoke into libcef; the library is AOT-compatible.
 
 Status: early. The API covers what an embedder of off-screen and windowed pages needs and grows on demand; the
-raw interop covers the whole C API. Verified on Windows; Linux interop is generated and compiled, Linux runs
-are pending.
+raw interop covers the whole C API. The smoke check passes on Windows and on Linux (Ubuntu 24.04 with Xvfb,
+software rendering) in CI.
 
 CEF binaries are the standard builds from the [Spotify CDN](https://cef-builds.spotifycdn.com/index.html). They
 have no proprietary codecs (H.264, AAC, HEVC): a build with them is a separate runtime, and its patent licensing
@@ -56,6 +56,9 @@ Rules of the road:
   `CefRuntime.InvokeAsync` run code there. Exceptions in handlers never reach CEF: they go to
   `CefRuntime.CallbackException`.
 - **Linux.** `CefSettings.DisableSignalHandlers` is true by default: the .NET runtime has its own signal handlers.
+  CEF starts sub-processes directly (`--no-zygote`, so no sandbox): children forked by Chromium's zygote from
+  the NativeAOT helper do not launch yet (`GPU process launch failed: error_code=1002`), see
+  `CefSettings.LinuxZygote`.
 
 ## Building
 
