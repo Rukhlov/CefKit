@@ -15,9 +15,13 @@ if (args.Any(a => a.StartsWith("--type=", StringComparison.Ordinal)))
 }
 
 var options = Options.Parse(args);
-var helperName = OperatingSystem.IsWindows() ? "cefkit-helper.exe" : "cefkit-helper";
-var helper = Path.Combine(AppContext.BaseDirectory, helperName);
-var subprocess = !options.SelfSubprocess && File.Exists(helper) ? helper : Environment.ProcessPath!;
+var subprocess = options.SelfSubprocess ? Environment.ProcessPath! : CefRuntime.HelperPath;
+if (subprocess is null)
+{
+    Console.WriteLine($"RESULT: FAILED ({CefRuntime.HelperFileName} is not next to libcef: pwsh eng/publish-helper.ps1, or --self-subprocess)");
+    return 1;
+}
+
 var root = Path.Combine(Path.GetTempPath(), "cefkit-smoke", $"p{Environment.ProcessId}");
 Directory.CreateDirectory(root);
 

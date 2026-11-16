@@ -10,6 +10,7 @@ public static unsafe partial class CefRuntime
 {
     private static readonly Lock s_lock = new();
     private static nint s_library;
+    private static string? s_directory;
     private static nint s_mainArgs;
     private static volatile bool s_initialized;
 
@@ -54,6 +55,25 @@ public static unsafe partial class CefRuntime
     }
 
     /// <summary>
+    /// File name of cefkit-helper, the NativeAOT sub-process executable of CefKit, on this OS.
+    /// </summary>
+    public static string HelperFileName => OperatingSystem.IsWindows() ? "cefkit-helper.exe" : "cefkit-helper";
+
+    /// <summary>
+    /// cefkit-helper next to the loaded libcef, where the CefKit.Runtime packages put it, or null when it is not
+    /// there. Meant for <see cref="CefSettings.BrowserSubprocessPath"/>.
+    /// </summary>
+    public static string? HelperPath
+    {
+        get
+        {
+            EnsureLoaded();
+            var path = Path.Combine(s_directory!, HelperFileName);
+            return File.Exists(path) ? path : null;
+        }
+    }
+
+    /// <summary>
     /// Loads libcef from a directory (default: the application directory) and selects the CEF API version of the
     /// interop. libcef must support that version, otherwise loading fails. Call before anything else in CefKit.
     /// </summary>
@@ -69,7 +89,8 @@ public static unsafe partial class CefRuntime
             var name = OperatingSystem.IsWindows() ? "libcef.dll"
                 : OperatingSystem.IsLinux() ? "libcef.so"
                 : throw new PlatformNotSupportedException("CefKit supports Windows and Linux");
-            var path = Path.Combine(directory ?? AppContext.BaseDirectory, name);
+            directory = Path.GetFullPath(directory ?? AppContext.BaseDirectory);
+            var path = Path.Combine(directory, name);
             var library = NativeLibrary.Load(path);
             NativeLibrary.SetDllImportResolver(typeof(CefRuntime).Assembly,
                 (libraryName, _, _) => libraryName == "libcef" ? library : 0);
@@ -83,6 +104,7 @@ public static unsafe partial class CefRuntime
                     $"{path} does not support CEF API version {CefApiVersion.Value} of CefKit (generated from CEF {CefApiVersion.CefVersion}): API hash {hash ?? "null"}, expected {expected}");
             }
 
+            s_directory = directory;
             s_library = library;
         }
     }

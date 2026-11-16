@@ -1,0 +1,26 @@
+<Project>
+
+  <!--
+    CefKit.Runtime.linux-x64: libcef.so, its resources and cefkit-helper go next to the output of a linux-x64 build,
+    or of a build without a runtime identifier on Linux, and to its publish directory.
+    <CefKitCopyRuntime>false</CefKitCopyRuntime> turns it off.
+  -->
+
+  <ItemGroup Condition="'$(CefKitCopyRuntime)' != 'false' and ('$(RuntimeIdentifier)' == 'linux-x64' or ('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux'))))">
+    <None Include="$(MSBuildThisFileDirectory)..\runtime\**"
+          Link="%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <!-- NuGet does not keep the executable bit, and CEF starts cefkit-helper for every sub-process -->
+  <Target Name="CefKitRuntimeLinuxX64Executable" AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'$(CefKitCopyRuntime)' != 'false' and !$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(OutDir)cefkit-helper')">
+    <Exec Command="chmod +x &quot;$(OutDir)cefkit-helper&quot;" />
+  </Target>
+
+  <Target Name="CefKitRuntimeLinuxX64PublishExecutable" AfterTargets="CopyFilesToPublishDirectory"
+          Condition="'$(CefKitCopyRuntime)' != 'false' and !$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(PublishDir)cefkit-helper')">
+    <Exec Command="chmod +x &quot;$(PublishDir)cefkit-helper&quot;" />
+  </Target>
+
+</Project>

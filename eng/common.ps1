@@ -27,6 +27,16 @@ function Get-CefPlatform([string]$Platform) {
 
 <#
 .SYNOPSIS
+.NET runtime identifier of the current OS (win-x64, linux-x64): NativeAOT builds and runtime packages are per RID.
+#>
+function Get-CefRid {
+    if ($IsWindows) { return 'win-x64' }
+    if ($IsLinux) { return 'linux-x64' }
+    throw 'Unsupported OS: CefKit targets win-x64 and linux-x64'
+}
+
+<#
+.SYNOPSIS
 Directory of the extracted CEF distribution: artifacts/cef/<version>/<platform>.
 #>
 function Get-CefDistributionDir([string]$Platform) {

@@ -21,6 +21,22 @@ CEF binaries are the standard builds from the [Spotify CDN](https://cef-builds.s
 have no proprietary codecs (H.264, AAC, HEVC): a build with them is a separate runtime, and its patent licensing
 is the distributor's responsibility.
 
+## Packages
+
+| Package | Contents |
+| --- | --- |
+| `CefKit` | the managed library (`lib/net10.0`), any OS |
+| `CefKit.Runtime.win-x64`, `CefKit.Runtime.linux-x64` | libcef, its resources and locales, `cefkit-helper` |
+
+A runtime package copies its files next to the application output and to the publish directory: for its runtime
+identifier, or for a build without one on the matching OS (`<CefKitCopyRuntime>false</CefKitCopyRuntime>` turns
+this off). Its version is the CEF version and a package revision (`156.0.15.1`: CEF 156.0.15, revision 1, which is
+`runtimeRevision` in `cef-version.json`); `CefKit` loads any libcef that supports its pinned CEF API version.
+On Linux `libcef.so` is stripped of debug symbols: 1.4 GB with them.
+
+The packages are not on nuget.org yet: `pwsh eng/pack.ps1` puts them in `nupkgs/`, and CI uploads them as the
+`packages-Windows` and `packages-Linux` artifacts of every run.
+
 ## Using it
 
 ```csharp
@@ -31,7 +47,7 @@ if (args.Any(a => a.StartsWith("--type="))) return CefRuntime.ExecuteProcess(); 
 
 var settings = new CefSettings
 {
-    BrowserSubprocessPath = Path.Combine(AppContext.BaseDirectory, "cefkit-helper.exe"),
+    BrowserSubprocessPath = CefRuntime.HelperPath,     // cefkit-helper next to libcef
     WindowlessRenderingEnabled = true,
     RootCachePath = Path.Combine(Path.GetTempPath(), "my-app-cef"),
 };
@@ -77,9 +93,21 @@ The smoke check opens an animated page off-screen, counts frames, evaluates Java
 the render process and reloads, then closes and shuts down; `--shared-texture`, `--disable-gpu`,
 `--self-subprocess` and `--seconds N` vary it.
 
+Packages, and the same smoke check built from them as an application gets them:
+
+```
+pwsh eng/pack.ps1 [-Package CefKit,Runtime] [-VersionSuffix dev.1]   # -> nupkgs/
+dotnet build samples/CefKit.Smoke.Packages -c Release
+artifacts/bin/CefKit.Smoke.Packages/release/CefKit.Smoke
+```
+
+The runtime package is packed for the current OS only (NativeAOT does not cross-compile); on Linux the script
+needs `strip` (binutils). Bump `runtimeRevision` in `cef-version.json` when a runtime package changes without a CEF
+update, e.g. a new helper.
+
 ## Updating CEF
 
-1. Set `cefVersion` (and `apiVersion` for a new branch) in `cef-version.json`.
+1. Set `cefVersion` (and `apiVersion` for a new branch) in `cef-version.json`, and `runtimeRevision` back to 1.
 2. `pwsh eng/fetch-cef.ps1 -Platform windows64` and `-Platform linux64`: generation needs the headers of both.
 3. `pwsh eng/generate.ps1` and review the diff of `src/CefKit/Interop` and `tests/CefKit.Tests/Interop`.
 4. Build, test, run the smoke check on both platforms.
@@ -87,12 +115,14 @@ the render process and reloads, then closes and shuts down; `--shared-texture`, 
 ## Layout
 
 ```
-cef-version.json        CEF version and pinned CEF API version
-eng/                    fetch-cef, generate (ClangSharp), publish-helper, CefRuntime.targets
-src/CefKit/             Interop/Generated* (generated), the managed layer
-src/CefKit.Helper/      cefkit-helper, the NativeAOT sub-process
-samples/CefKit.Smoke/   end-to-end check
-tests/CefKit.Tests/     generated layout tests and unit tests
+cef-version.json                CEF version, pinned CEF API version, runtime package revision
+eng/                            fetch-cef, generate (ClangSharp), publish-helper, pack, CefRuntime.targets
+src/CefKit/                     Interop/Generated* (generated), the managed layer
+src/CefKit.Helper/              cefkit-helper, the NativeAOT sub-process
+src/CefKit.Runtime/             CefKit.Runtime.<rid> packages: project and build targets
+samples/CefKit.Smoke/           end-to-end check
+samples/CefKit.Smoke.Packages/  the end-to-end check built from the packages
+tests/CefKit.Tests/             generated layout tests and unit tests
 ```
 
 ## License

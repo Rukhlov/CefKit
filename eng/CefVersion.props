@@ -1,0 +1,24 @@
+<Project>
+
+  <!--
+    CEF version, CEF platform and runtime package version of this repository from cef-version.json, for
+    eng/CefRuntime.targets, src/CefKit.Runtime and samples/CefKit.Smoke.Packages. The platform is the build OS unless
+    CefKitPlatform is given.
+  -->
+
+  <PropertyGroup>
+    <_CefKitVersionJson>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\cef-version.json'))</_CefKitVersionJson>
+    <CefKitCefVersion>$([System.Text.RegularExpressions.Regex]::Match($(_CefKitVersionJson), '"cefVersion"\s*:\s*"([^"]+)"').Groups[1].Value)</CefKitCefVersion>
+    <_CefKitRuntimeRevision>$([System.Text.RegularExpressions.Regex]::Match($(_CefKitVersionJson), '"runtimeRevision"\s*:\s*(\d+)').Groups[1].Value)</_CefKitRuntimeRevision>
+    <!-- CefKit.Runtime.<rid>: the CEF version number and the package revision, e.g. 156.0.15.1 -->
+    <CefKitRuntimeVersion>$([System.Text.RegularExpressions.Regex]::Match($(CefKitCefVersion), '^\d+\.\d+\.\d+').Value).$(_CefKitRuntimeRevision)</CefKitRuntimeVersion>
+
+    <CefKitPlatform Condition="'$(CefKitPlatform)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">windows64</CefKitPlatform>
+    <CefKitPlatform Condition="'$(CefKitPlatform)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">linux64</CefKitPlatform>
+    <CefKitRid Condition="'$(CefKitPlatform)' == 'windows64'">win-x64</CefKitRid>
+    <CefKitRid Condition="'$(CefKitPlatform)' == 'linux64'">linux-x64</CefKitRid>
+    <CefKitDistributionDir>$(MSBuildThisFileDirectory)..\artifacts\cef\$(CefKitCefVersion)\$(CefKitPlatform)\</CefKitDistributionDir>
+    <CefKitHelperDir>$(MSBuildThisFileDirectory)..\artifacts\helper\$(CefKitRid)\</CefKitHelperDir>
+  </PropertyGroup>
+
+</Project>

@@ -16,7 +16,7 @@ param(
 )
 . "$PSScriptRoot/common.ps1"
 
-$rid = if ($IsWindows) { 'win-x64' } elseif ($IsLinux) { 'linux-x64' } else { throw 'Unsupported OS' }
+$rid = Get-CefRid
 if (-not $Output) { $Output = Join-Path $RepoRoot "artifacts/helper/$rid" }
 
 if ($IsWindows -and -not (Get-Command vswhere.exe -ErrorAction SilentlyContinue)) {

@@ -58,3 +58,36 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke/release xvfb-run -a
+
+      # CefKit and CefKit.Runtime.<rid> of this OS into nupkgs/, then the smoke check built from them as an
+      # application gets them
+      - name: Pack
+        shell: pwsh
+        run: ./eng/pack.ps1
+
+      - name: Package smoke check (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          SMOKE_NAME: Package smoke check
+        run: |
+          dotnet build samples/CefKit.Smoke.Packages -c Release
+          bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke.Packages/release
+
+      - name: Package smoke check (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          SMOKE_NAME: Package smoke check
+        run: |
+          dotnet build samples/CefKit.Smoke.Packages -c Release
+          bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke.Packages/release xvfb-run -a
+
+      # CefKit itself from the Windows job, each runtime from its own OS
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ runner.os }}
+          path: ${{ runner.os == 'Windows' && 'nupkgs/*' || 'nupkgs/CefKit.Runtime.*' }}
+          compression-level: 0
+          retention-days: 14

@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    CefKit.Runtime.<rid>: the CEF binaries and resources of cef-version.json and cefkit-helper, which
+    build/CefKit.Runtime.<rid>.targets copies next to the application output. No assembly and no dependencies.
+
+    Packed by eng/pack.ps1 from the runtime it stages in artifacts/runtime/<rid> (CefKitRuntimeDir), so it is not in
+    CefKit.slnx. The RID is the one of the build OS: NativeAOT does not cross-compile, each runtime is packed on its OS.
+  -->
+
+  <Import Project="..\..\eng\CefVersion.props" />
+
+  <PropertyGroup>
+    <PackageId>CefKit.Runtime.$(CefKitRid)</PackageId>
+    <Version>$(CefKitRuntimeVersion)</Version>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <Description>Chromium Embedded Framework $(CefKitCefVersion) for CefKit on $(CefKitRid): libcef, its resources and cefkit-helper, the NativeAOT sub-process executable, copied next to the application. Standard CEF build without proprietary codecs.</Description>
+    <PackageTags>cef;chromium;browser;native;$(CefKitRid)</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- CEF, Chromium and CefKit licenses together: see LICENSE.md -->
+    <PackageLicenseExpression></PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <!-- Native files outside lib/ are the point of the package (NU5100), and it has no lib/ at all (NU5128) -->
+    <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
+    <CefKitRuntimeDir Condition="'$(CefKitRuntimeDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\runtime\$(CefKitRid)\</CefKitRuntimeDir>
+    <!-- A global property (-p:) cannot be changed, hence a normalized copy -->
+    <_CefKitRuntimeDir>$([MSBuild]::EnsureTrailingSlash('$(CefKitRuntimeDir)'))</_CefKitRuntimeDir>
+    <_CefKitLibcef Condition="'$(CefKitRid)' == 'win-x64'">libcef.dll</_CefKitLibcef>
+    <_CefKitLibcef Condition="'$(CefKitRid)' == 'linux-x64'">libcef.so</_CefKitLibcef>
+    <_CefKitHelper Condition="'$(CefKitRid)' == 'win-x64'">cefkit-helper.exe</_CefKitHelper>
+    <_CefKitHelper Condition="'$(CefKitRid)' == 'linux-x64'">cefkit-helper</_CefKitHelper>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The pack task keeps the subdirectory of a wildcard item under PackagePath itself (locales/) -->
+    <None Include="$(_CefKitRuntimeDir)**" Pack="true" PackagePath="runtime\" />
+    <None Include="build\$(PackageId).targets" Pack="true" PackagePath="build\;buildTransitive\" />
+    <None Include="PACKAGE.md" Pack="true" PackagePath="README.md" />
+    <None Include="LICENSE.md" Pack="true" PackagePath="LICENSE.md" />
+    <None Include="$(CefKitDistributionDir)LICENSE.txt" Pack="true" PackagePath="licenses\cef\LICENSE.txt" />
+    <None Include="$(CefKitDistributionDir)CREDITS.html" Pack="true" PackagePath="licenses\cef\CREDITS.html" />
+  </ItemGroup>
+
+  <Target Name="CefKitCheckStagedRuntime" BeforeTargets="GenerateNuspec">
+    <Error Condition="'$(CefKitRid)' == ''" Text="CefKit.Runtime is packed on Windows or Linux x64" />
+    <Error Condition="!Exists('$(_CefKitRuntimeDir)$(_CefKitLibcef)') or !Exists('$(_CefKitRuntimeDir)$(_CefKitHelper)')"
+           Text="No staged CEF runtime with $(_CefKitLibcef) and $(_CefKitHelper) in $(_CefKitRuntimeDir): pack it with pwsh eng/pack.ps1" />
+    <Error Condition="!Exists('$(CefKitDistributionDir)CREDITS.html')"
+           Text="CEF $(CefKitCefVersion) ($(CefKitPlatform)) is not downloaded: pwsh eng/fetch-cef.ps1" />
+  </Target>
+
+</Project>

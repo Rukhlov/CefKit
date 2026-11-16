@@ -1,0 +1,15 @@
+<Project>
+
+  <!--
+    CefKit.Runtime.win-x64: libcef, its resources and cefkit-helper.exe go next to the output of a win-x64 build, or
+    of a build without a runtime identifier on Windows, and to its publish directory.
+    <CefKitCopyRuntime>false</CefKitCopyRuntime> turns it off.
+  -->
+
+  <ItemGroup Condition="'$(CefKitCopyRuntime)' != 'false' and ('$(RuntimeIdentifier)' == 'win-x64' or ('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))))">
+    <None Include="$(MSBuildThisFileDirectory)..\runtime\**"
+          Link="%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+</Project>

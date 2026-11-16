@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The smoke check (samples/CefKit.Smoke) built the way an application gets CefKit: from the packages that
+    eng/pack.ps1 put in nupkgs/, CefKit and CefKit.Runtime.<rid> of the build OS, with no runtime identifier.
+    Not in CefKit.slnx: it needs the packages first.
+
+      pwsh eng/pack.ps1
+      dotnet build samples/CefKit.Smoke.Packages -c Release
+      artifacts/bin/CefKit.Smoke.Packages/release/CefKit.Smoke(.exe)
+
+    Versions: CefKitPackageVersion (default: VersionPrefix, i.e. pack.ps1 without -VersionSuffix) and
+    CefKitRuntimePackageVersion (default: from cef-version.json).
+  -->
+
+  <Import Project="..\..\eng\CefVersion.props" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>CefKit.Smoke</AssemblyName>
+    <RootNamespace>CefKit.Smoke</RootNamespace>
+    <CefKitPackageVersion Condition="'$(CefKitPackageVersion)' == ''">$(VersionPrefix)</CefKitPackageVersion>
+    <CefKitRuntimePackageVersion Condition="'$(CefKitRuntimePackageVersion)' == ''">$(CefKitRuntimeVersion)</CefKitRuntimePackageVersion>
+    <!-- Exact versions from nupkgs/ only, into a folder of their own: pack.ps1 empties it of CefKit packages, so a
+         re-packed version never comes from a cache -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <RestoreSources>$(MSBuildThisFileDirectory)..\..\nupkgs</RestoreSources>
+    <RestorePackagesPath>$(MSBuildThisFileDirectory)..\..\artifacts\package-smoke\packages</RestorePackagesPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\CefKit.Smoke\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CefKit" Version="[$(CefKitPackageVersion)]" />
+    <PackageReference Include="CefKit.Runtime.$(CefKitRid)" Version="[$(CefKitRuntimePackageVersion)]" />
+  </ItemGroup>
+
+</Project>
