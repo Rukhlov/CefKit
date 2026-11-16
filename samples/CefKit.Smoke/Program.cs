@@ -2,7 +2,7 @@
 // a render process crash and recovery, closing and shutdown. Exit code 0 when every check passed.
 //
 //   CefKit.Smoke [--seconds 3] [--width 800 --height 600] [--shared-texture] [--disable-gpu] [--no-crash]
-//                [--self-subprocess] [--keep-log] [--url <url>]
+//                [--self-subprocess] [--keep-log] [--url <url>] [--switch name[=value]]...
 using System.Diagnostics;
 using CefKit;
 using CefKit.Smoke;
@@ -37,7 +37,7 @@ var settings = new CefSettings
 };
 
 var clock = Stopwatch.StartNew();
-if (!CefRuntime.Initialize(settings, new SmokeApp(options.DisableGpu)))
+if (!CefRuntime.Initialize(settings, new SmokeApp(options)))
 {
     Console.WriteLine("RESULT: FAILED (CefRuntime.Initialize returned false)");
     return 1;

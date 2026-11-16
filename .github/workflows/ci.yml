@@ -54,7 +54,20 @@ jobs:
         shell: bash
         run: bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke/release
 
+      # Child processes through the zygote fail to launch on Linux: verbose zygote logs while that is investigated
+      - name: Zygote diagnostics (Linux)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        shell: bash
+        env:
+          SMOKE_NAME: Zygote diagnostics
+          SMOKE_ARGS: --no-crash --seconds 1 --switch enable-logging=stderr --switch vmodule=*zygote*=3,*child_process_launcher*=3
+          SMOKE_GREP: '[Zz]ygote|fork|[Ll]aunch|FATAL|CefKit|RESULT|ok:|FAILED'
+        run: bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke/release xvfb-run -a
+
       - name: Smoke check (Linux)
         if: runner.os == 'Linux'
         shell: bash
+        env:
+          SMOKE_ARGS: --switch no-zygote
         run: bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke/release xvfb-run -a

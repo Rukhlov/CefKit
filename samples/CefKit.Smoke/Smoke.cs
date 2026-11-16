@@ -8,7 +8,7 @@ namespace CefKit.Smoke;
 /// Command line of the smoke check.
 /// </summary>
 internal sealed record Options(int Seconds, int Width, int Height, bool SharedTexture, bool DisableGpu, bool NoCrash, bool SelfSubprocess, bool KeepLog,
-    string Url)
+    string Url, IReadOnlyList<string> Switches)
 {
     /// <summary>
     /// An animated page: every frame changes the canvas, so an off-screen browser paints continuously.
@@ -36,21 +36,40 @@ internal sealed record Options(int Seconds, int Width, int Height, bool SharedTe
             args.Contains("--no-crash"),
             args.Contains("--self-subprocess"),
             args.Contains("--keep-log"),
-            Value("--url") ?? "data:text/html;charset=utf-8," + Uri.EscapeDataString(AnimatedPage));
+            Value("--url") ?? "data:text/html;charset=utf-8," + Uri.EscapeDataString(AnimatedPage),
+            args.Select((arg, i) => (arg, i)).Where(a => a.arg == "--switch" && a.i + 1 < args.Length).Select(a => args[a.i + 1]).ToList());
     }
 }
 
 /// <summary>
-/// Chromium switches of the browser process.
+/// Chromium switches of the browser process: --disable-gpu and the --switch name[=value] options.
 /// </summary>
-internal sealed class SmokeApp(bool disableGpu) : CefApp
+internal sealed class SmokeApp(Options options) : CefApp
 {
     protected override void OnBeforeCommandLineProcessing(string processType, CefCommandLine commandLine)
     {
-        if (processType.Length == 0 && disableGpu)
+        if (processType.Length != 0)
+        {
+            return;
+        }
+
+        if (options.DisableGpu)
         {
             commandLine.AppendSwitch("disable-gpu");
             commandLine.AppendSwitch("disable-gpu-compositing");
+        }
+
+        foreach (var item in options.Switches)
+        {
+            var separator = item.IndexOf('=');
+            if (separator < 0)
+            {
+                commandLine.AppendSwitch(item);
+            }
+            else
+            {
+                commandLine.AppendSwitch(item[..separator], item[(separator + 1)..]);
+            }
         }
     }
 }
