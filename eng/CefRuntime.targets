@@ -29,6 +29,12 @@
           Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
   </ItemGroup>
 
+  <!-- CEF starts the helper for every sub-process: on Linux and macOS it must stay executable after the copy -->
+  <Target Name="CefKitHelperExecutable" AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'$(CefKitCopyRuntime)' == 'true' and !$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(OutDir)cefkit-helper')">
+    <Exec Command="chmod +x &quot;$(OutDir)cefkit-helper&quot;" />
+  </Target>
+
   <Target Name="CefKitCheckRuntime" BeforeTargets="Build" Condition="'$(CefKitCopyRuntime)' == 'true'">
     <Error Condition="!Exists('$(CefKitDistributionDir).cefkit-complete')"
            Text="CEF $(CefKitCefVersion) ($(CefKitPlatform)) is not downloaded: pwsh eng/fetch-cef.ps1" />

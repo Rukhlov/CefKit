@@ -52,9 +52,9 @@ jobs:
       - name: Smoke check (Windows)
         if: runner.os == 'Windows'
         shell: bash
-        run: bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke/release/CefKit.Smoke.exe --disable-gpu --keep-log
+        run: bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke/release
 
       - name: Smoke check (Linux)
         if: runner.os == 'Linux'
         shell: bash
-        run: bash eng/ci-smoke.sh xvfb-run -a artifacts/bin/CefKit.Smoke/release/CefKit.Smoke --disable-gpu --keep-log
+        run: bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke/release xvfb-run -a
