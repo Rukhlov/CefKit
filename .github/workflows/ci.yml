@@ -48,10 +48,13 @@ jobs:
       - name: Unit tests
         run: dotnet test tests/CefKit.Tests -c Release --no-build
 
+      # The result goes to annotations, readable without signing in
       - name: Smoke check (Windows)
         if: runner.os == 'Windows'
-        run: artifacts/bin/CefKit.Smoke/release/CefKit.Smoke.exe --disable-gpu
+        shell: bash
+        run: bash eng/ci-smoke.sh artifacts/bin/CefKit.Smoke/release/CefKit.Smoke.exe --disable-gpu --keep-log
 
       - name: Smoke check (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a artifacts/bin/CefKit.Smoke/release/CefKit.Smoke --disable-gpu
+        shell: bash
+        run: bash eng/ci-smoke.sh xvfb-run -a artifacts/bin/CefKit.Smoke/release/CefKit.Smoke --disable-gpu --keep-log

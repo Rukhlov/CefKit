@@ -7,7 +7,8 @@ namespace CefKit.Smoke;
 /// <summary>
 /// Command line of the smoke check.
 /// </summary>
-internal sealed record Options(int Seconds, int Width, int Height, bool SharedTexture, bool DisableGpu, bool NoCrash, bool SelfSubprocess, string Url)
+internal sealed record Options(int Seconds, int Width, int Height, bool SharedTexture, bool DisableGpu, bool NoCrash, bool SelfSubprocess, bool KeepLog,
+    string Url)
 {
     /// <summary>
     /// An animated page: every frame changes the canvas, so an off-screen browser paints continuously.
@@ -34,6 +35,7 @@ internal sealed record Options(int Seconds, int Width, int Height, bool SharedTe
             args.Contains("--disable-gpu"),
             args.Contains("--no-crash"),
             args.Contains("--self-subprocess"),
+            args.Contains("--keep-log"),
             Value("--url") ?? "data:text/html;charset=utf-8," + Uri.EscapeDataString(AnimatedPage));
     }
 }
