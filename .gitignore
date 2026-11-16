@@ -1,0 +1,14 @@
+# Build output and downloaded CEF distributions
+artifacts/
+bin/
+obj/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Local packages produced by pack scripts
+nupkgs/

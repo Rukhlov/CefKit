@@ -1,0 +1,37 @@
+<Project>
+
+  <!--
+    Copies the CEF runtime next to an application of this repository (samples, tests): libcef and its resources from
+    the distribution extracted by eng/fetch-cef.ps1, and the NativeAOT helper published by eng/publish-helper.ps1.
+    Enable with <CefKitCopyRuntime>true</CefKitCopyRuntime> before importing. Packages replace this later.
+  -->
+
+  <PropertyGroup>
+    <_CefKitVersionJson>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\cef-version.json'))</_CefKitVersionJson>
+    <CefKitCefVersion>$([System.Text.RegularExpressions.Regex]::Match($(_CefKitVersionJson), '"cefVersion"\s*:\s*"([^"]+)"').Groups[1].Value)</CefKitCefVersion>
+    <CefKitPlatform Condition="'$(CefKitPlatform)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">windows64</CefKitPlatform>
+    <CefKitPlatform Condition="'$(CefKitPlatform)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">linux64</CefKitPlatform>
+    <CefKitRid Condition="'$(CefKitPlatform)' == 'windows64'">win-x64</CefKitRid>
+    <CefKitRid Condition="'$(CefKitPlatform)' == 'linux64'">linux-x64</CefKitRid>
+    <CefKitDistributionDir>$(MSBuildThisFileDirectory)..\artifacts\cef\$(CefKitCefVersion)\$(CefKitPlatform)\</CefKitDistributionDir>
+    <CefKitHelperDir>$(MSBuildThisFileDirectory)..\artifacts\helper\$(CefKitRid)\</CefKitHelperDir>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(CefKitCopyRuntime)' == 'true'">
+    <!-- Import libraries and the sandbox bootstrap executables are not needed at run time -->
+    <None Include="$(CefKitDistributionDir)Release\**\*"
+          Exclude="$(CefKitDistributionDir)Release\**\*.lib;$(CefKitDistributionDir)Release\bootstrap*.exe"
+          Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="$(CefKitDistributionDir)Resources\**\*"
+          Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="$(CefKitHelperDir)cefkit-helper*"
+          Exclude="$(CefKitHelperDir)*.pdb;$(CefKitHelperDir)*.dbg"
+          Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="CefKitCheckRuntime" BeforeTargets="Build" Condition="'$(CefKitCopyRuntime)' == 'true'">
+    <Error Condition="!Exists('$(CefKitDistributionDir).cefkit-complete')"
+           Text="CEF $(CefKitCefVersion) ($(CefKitPlatform)) is not downloaded: pwsh eng/fetch-cef.ps1" />
+  </Target>
+
+</Project>

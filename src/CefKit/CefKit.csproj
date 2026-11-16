@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- .NET binding to the CEF C API: generated interop (Interop/Generated*) and a thin managed layer -->
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>.NET binding to the Chromium Embedded Framework C API for Windows and Linux x64: ClangSharp-generated interop and a thin managed layer for windowed and off-screen browsers.</Description>
+    <PackageTags>cef;chromium;browser;offscreen;interop</PackageTags>
+    <!-- Generated interop mirrors the C API: lower-case names (CS8981), documentation lives in the CEF headers (CS1591) -->
+    <NoWarn>$(NoWarn);CS8981;CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CefKit.Tests" />
+  </ItemGroup>
+
+</Project>

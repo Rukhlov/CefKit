@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Unit tests without libcef: struct layout of the generated interop (Interop/Generated*, from ClangSharp)
+       and reference counting of the structs that .NET gives to CEF -->
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+    <!-- Generated tests mirror C names -->
+    <NoWarn>$(NoWarn);CS8981;xUnit1013</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CefKit\CefKit.csproj" />
+  </ItemGroup>
+
+  <!-- Platform structs are checked on their own platform -->
+  <ItemGroup>
+    <Compile Remove="Interop\Generated.Windows\**" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <Compile Remove="Interop\Generated.Linux\**" Condition="!$([MSBuild]::IsOSPlatform('Linux'))" />
+  </ItemGroup>
+
+</Project>

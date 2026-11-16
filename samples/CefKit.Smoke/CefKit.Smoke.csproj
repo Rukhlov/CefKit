@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- End-to-end check of CefKit with a real CEF: off-screen page, frames, DevTools, render process crash, shutdown -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <CefKitCopyRuntime>true</CefKitCopyRuntime>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CefKit\CefKit.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\..\eng\CefRuntime.targets" />
+
+</Project>

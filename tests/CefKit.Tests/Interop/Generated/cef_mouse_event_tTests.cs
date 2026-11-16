@@ -1,0 +1,29 @@
+using System.Runtime.InteropServices;
+using Xunit;
+
+namespace CefKit.Interop.UnitTests;
+
+/// <summary>Provides validation of the <see cref="cef_mouse_event_t" /> struct.</summary>
+public static unsafe partial class cef_mouse_event_tTests
+{
+    /// <summary>Validates that the <see cref="cef_mouse_event_t" /> struct is blittable.</summary>
+    [Fact]
+    public static void IsBlittableTest()
+    {
+        Assert.Equal(sizeof(cef_mouse_event_t), Marshal.SizeOf<cef_mouse_event_t>());
+    }
+
+    /// <summary>Validates that the <see cref="cef_mouse_event_t" /> struct has the right <see cref="LayoutKind" />.</summary>
+    [Fact]
+    public static void IsLayoutSequentialTest()
+    {
+        Assert.True(typeof(cef_mouse_event_t).IsLayoutSequential);
+    }
+
+    /// <summary>Validates that the <see cref="cef_mouse_event_t" /> struct has the correct size.</summary>
+    [Fact]
+    public static void SizeOfTest()
+    {
+        Assert.Equal(12, sizeof(cef_mouse_event_t));
+    }
+}

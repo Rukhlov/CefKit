@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CefKit/CefKit.csproj" />
+    <Project Path="src/CefKit.Helper/CefKit.Helper.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/CefKit.Smoke/CefKit.Smoke.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CefKit.Tests/CefKit.Tests.csproj" />
+  </Folder>
+</Solution>

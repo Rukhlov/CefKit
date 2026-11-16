@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- CEF sub-process executable (renderer, GPU, utility) as a NativeAOT binary: no .NET runtime start-up and no
+       managed code after CEF takes over. Published per RID by eng/publish-helper.ps1. -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>cefkit-helper</AssemblyName>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <OptimizationPreference>Size</OptimizationPreference>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CefKit\CefKit.csproj" />
+  </ItemGroup>
+
+</Project>
