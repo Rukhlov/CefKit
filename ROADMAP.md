@@ -13,17 +13,16 @@ findings that the code does not show are recorded here as well.
     sub-process (`--self-subprocess`) the same crash was reported after 13.9 s, and five sub-processes took 193 MB
     of private memory against 175 MB with the helper.
   - Linux (CI only: Ubuntu 24.04, Xvfb, `--disable-gpu`): passes when CEF starts sub-processes without the zygote
-    (`--no-zygote`, the default of `CefSettings.LinuxZygote`).
-- Packages (`eng/pack.ps1`): `CefKit` 0.1.0 and `CefKit.Runtime.<rid>` 156.0.15.1. Checked on Windows: the runtime
-  package is 183 MB (nuget.org accepts up to 250 MB), the smoke check built from the packages passes, and so do a
-  RID-specific publish, a reference through a library project and `CefKitCopyRuntime=false`. The Linux runtime
-  package is packed and checked in CI only.
+    (`--no-zygote`, the default of `CefSettings.LinuxZygote`); a crashed renderer is reported in 350–375 ms.
+- Packages (`eng/pack.ps1`): `CefKit` 0.1.0 and `CefKit.Runtime.<rid>` 156.0.15.1, about 183 MB for win-x64 and
+  154 MB for linux-x64 (`libcef.so` stripped from 1.4 GB); nuget.org accepts up to 250 MB. The smoke check built
+  from the packages passes in CI on both systems (first with commit 356d545). Checked on Windows besides: a
+  RID-specific publish, a reference through a library project and `CefKitCopyRuntime=false`.
 
 ## Next
 
-1. **Linux packages in CI.** The first CI run with packaging packs on Linux: `strip` of `libcef.so` (1.4 GB with
-   symbols), the helper's executable bit after NuGet, the smoke check built from the packages. Check the size of
-   `CefKit.Runtime.linux-x64` against the nuget.org limit.
+1. **CI actions on Node.js 24.** GitHub runs the v4 actions (checkout, setup-dotnet, cache, upload-artifact) on
+   Node.js 24 instead of 20 with a deprecation warning: move them to their current major versions.
 2. **Zygote and sandbox on Linux**, on a Linux machine or in WSL rather than through CI runs. Known: with the zygote
    every child launch fails with `GPU process launch failed: error_code=1002`, then Chromium aborts with
    `GPU process isn't usable`; the helper alone starts and loads libcef
