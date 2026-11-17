@@ -16,7 +16,9 @@ public class CefApp : CefHandler<cef_app_t>
 
     /// <summary>
     /// Last chance to change the command line of a process before CEF and Chromium parse it: the browser process
-    /// (empty process type) or a sub-process.
+    /// (empty process type) or a sub-process. The browser process command line has the switches of CEF already,
+    /// among them --disable-features with the features CEF turns off (add to such lists with
+    /// <see cref="CefCommandLine.AppendToListSwitch"/>), and on Linux --no-zygote from CefKit.
     /// </summary>
     protected virtual void OnBeforeCommandLineProcessing(string processType, CefCommandLine commandLine)
     {
@@ -36,7 +38,13 @@ public class CefApp : CefHandler<cef_app_t>
             using var line = CefCommandLine.From(commandLine);
             if (line is not null)
             {
-                FromNative<CefApp>(self).OnBeforeCommandLineProcessing(CefStrings.Read(processType) ?? string.Empty, line);
+                var type = CefStrings.Read(processType) ?? string.Empty;
+                if (type.Length == 0)
+                {
+                    CefRuntime.AddBrowserSwitches(line);
+                }
+
+                FromNative<CefApp>(self).OnBeforeCommandLineProcessing(type, line);
             }
         }
         catch (Exception ex)

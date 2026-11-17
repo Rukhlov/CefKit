@@ -129,7 +129,8 @@ public sealed unsafe class CefCommandLine : CefObject
     }
 
     /// <summary>
-    /// Adds a switch with a value.
+    /// Adds a switch with a value. A switch that is there already gets the new value (the last value counts):
+    /// add to comma-separated lists such as disable-features with <see cref="AppendToListSwitch"/>.
     /// </summary>
     public void AppendSwitch(string name, string value)
     {
@@ -142,6 +143,23 @@ public sealed unsafe class CefCommandLine : CefObject
             var nameValue = CefStrings.View(nameChars, name);
             var switchValue = CefStrings.View(valueChars, value);
             self->append_switch_with_value(self, &nameValue, &switchValue);
+        }
+    }
+
+    /// <summary>
+    /// Adds values to a comma-separated list switch such as disable-features or enable-features and keeps the values
+    /// it has. <see cref="AppendSwitch(string, string)"/> would replace them, e.g. the features that CEF turns off
+    /// itself in the browser process.
+    /// </summary>
+    public void AppendToListSwitch(string name, params string[] values)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(values);
+        var list = MergeList(GetSwitchValue(name), values);
+        if (list is not null)
+        {
+            RemoveSwitch(name);
+            AppendSwitch(name, list);
         }
     }
 
@@ -160,6 +178,26 @@ public sealed unsafe class CefCommandLine : CefObject
     }
 
     internal static CefCommandLine? From(cef_command_line_t* ptr) => ptr == null ? null : new CefCommandLine(ptr);
+
+    /// <summary>
+    /// A comma-separated list with the values it lacks appended (values may be lists themselves), or null when it has
+    /// them all.
+    /// </summary>
+    internal static string? MergeList(string list, IEnumerable<string> values)
+    {
+        const StringSplitOptions Options = StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries;
+        var items = list.Split(',', Options).ToList();
+        var count = items.Count;
+        foreach (var item in values.SelectMany(v => v.Split(',', Options)))
+        {
+            if (!items.Contains(item, StringComparer.Ordinal))
+            {
+                items.Add(item);
+            }
+        }
+
+        return items.Count > count ? string.Join(',', items) : null;
+    }
 }
 
 /// <summary>

@@ -71,27 +71,41 @@ Rules of the road:
 - **Threads.** Handlers run on CEF threads, mostly the UI thread (`CefThreadId.UI`). `CefRuntime.PostTask` and
   `CefRuntime.InvokeAsync` run code there. Exceptions in handlers never reach CEF: they go to
   `CefRuntime.CallbackException`.
-- **Linux.** `CefSettings.DisableSignalHandlers` is true by default: the .NET runtime has its own signal handlers.
-  CEF starts sub-processes directly (`--no-zygote`, so no sandbox): children forked by Chromium's zygote from
-  the NativeAOT helper do not launch yet (`GPU process launch failed: error_code=1002`), see
-  `CefSettings.LinuxZygote`.
+- **Command line.** Chromium switches go in `CefApp.OnBeforeCommandLineProcessing`. The browser process command
+  line has CEF's switches there already, among them `--disable-features` with the features CEF turns off:
+  `AppendSwitch` replaces a value (the last one counts), `AppendToListSwitch` adds to such a list.
+- **Linux.**
+  - `CefSettings.DisableSignalHandlers` is true by default: the .NET runtime has its own signal handlers.
+  - CEF starts sub-processes directly: CefKit adds `--no-zygote` to the browser process (also with
+    `CommandLineArgsDisabled`), which needs `NoSandbox`. Chromium's zygote launches no children from
+    `cefkit-helper` or a .NET executable yet and then aborts the process (`GPU process launch failed:
+    error_code=1002`, `GPU process isn't usable`): `CefSettings.LinuxZygote` is for debugging only.
+  - CEF needs an X server or a Wayland compositor (`DISPLAY`, `WAYLAND_DISPLAY`), otherwise `Initialize` returns
+    false; off-screen browsers run without one with `--ozone-platform=headless`.
+  - Shared textures are dma-buf planes: they need GPU compositing and a GBM device. Without GPU compositing the
+    frames come to `OnPaint`, without a GBM device (e.g. WSL) none come at all.
+  - WSL: OpenGL is llvmpipe by default, which Chromium blocklists (software compositing, no WebGL);
+    `GALLIUM_DRIVER=d3d12` gives it the GPU of the host.
 
 ## Building
 
-Requirements: .NET 10 SDK or newer, PowerShell 7; for the NativeAOT helper the Visual Studio C++ tools on Windows,
-`clang` and `zlib1g-dev` on Linux.
+Requirements: .NET 10 SDK or newer with its current patch (NativeAOT compiles the SDK's runtime into the helper,
+and NuGet audit fails a vulnerable one with NU1903), PowerShell 7; for the NativeAOT helper the Visual Studio C++
+tools on Windows, `clang` and `zlib1g-dev` on Linux. On Linux `fetch-cef.ps1` unpacks with `lbzip2` or `bzip2`,
+CEF needs the libraries that `.github/workflows/ci.yml` installs (`libnss3`, `libasound2t64`...), and the smoke
+check a display: `xvfb-run -a` or `--switch ozone-platform=headless`.
 
 ```
 pwsh eng/fetch-cef.ps1                 # CEF of cef-version.json for this OS -> artifacts/cef (SHA1-checked)
 pwsh eng/publish-helper.ps1            # cefkit-helper for this OS -> artifacts/helper/<rid>
 dotnet build CefKit.slnx
-dotnet test tests/CefKit.Tests         # struct layout of the interop, reference counting
+dotnet test tests/CefKit.Tests         # struct layout of the interop, reference counting, list switches
 artifacts/bin/CefKit.Smoke/debug/CefKit.Smoke     # end-to-end check with a real CEF
 ```
 
 The smoke check opens an animated page off-screen, counts frames, evaluates JavaScript through DevTools, crashes
-the render process and reloads, then closes and shuts down; `--shared-texture`, `--disable-gpu`,
-`--self-subprocess` and `--seconds N` vary it.
+the render process and reloads, then closes and shuts down; `--shared-texture` (frames must be GPU textures),
+`--disable-gpu`, `--self-subprocess`, `--seconds N` and `--switch name[=value]` vary it.
 
 Packages, and the same smoke check built from them as an application gets them:
 

@@ -14,7 +14,8 @@ application in its code or API.
   Writes `src/CefKit/Interop/Generated*`, `CefApiVersion.cs` and `tests/CefKit.Tests/Interop/Generated*`.
 - `eng/publish-helper.ps1` — publishes `cefkit-helper` for the current OS (NativeAOT does not cross-compile
   between operating systems).
-- `eng/CefRuntime.targets` — copies the extracted CEF and the helper next to samples and tests.
+- `eng/CefRuntime.targets` — puts the extracted CEF (as hard links: the Linux `libcef.so` has 1.4 GB of symbols)
+  and the helper next to samples and tests.
 - `eng/pack.ps1` — packages into `nupkgs/`: `CefKit` (managed, any OS) and `CefKit.Runtime.<rid>` of the current
   OS (CEF minimal distribution without import libraries and sandbox executables, plus the helper, staged in
   `artifacts/runtime/<rid>`; `libcef.so` stripped). Runtime version: CEF version + `runtimeRevision` (156.0.15.1).

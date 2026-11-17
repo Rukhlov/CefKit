@@ -32,6 +32,9 @@ public sealed class CefWindowInfo
 
     /// <summary>
     /// Off-screen frames as GPU textures (<see cref="CefRenderHandler"/> accelerated paint) instead of CPU buffers.
+    /// They need GPU compositing: without it (GPU disabled or blocklisted) the frames come as CPU buffers. On Linux
+    /// they are dma-buf planes and need a GBM device as well: without one (e.g. WSL) no frames come at all while GPU
+    /// compositing is on, so recreate the browser without shared textures when no accelerated paint arrives.
     /// </summary>
     public bool SharedTextureEnabled { get; set; }
 

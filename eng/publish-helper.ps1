@@ -26,6 +26,13 @@ if ($IsWindows -and -not (Get-Command vswhere.exe -ErrorAction SilentlyContinue)
     }
 }
 
-dotnet publish (Join-Path $RepoRoot 'src/CefKit.Helper/CefKit.Helper.csproj') -c $Configuration -r $rid -o $Output
-if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit code $LASTEXITCODE" }
+dotnet publish (Join-Path $RepoRoot 'src/CefKit.Helper/CefKit.Helper.csproj') -c $Configuration -r $rid -o $Output |
+    Tee-Object -Variable publishOutput
+if ($LASTEXITCODE -ne 0) {
+    # NativeAOT compiles the runtime of the SDK's ILCompiler into the helper, and NuGet audit fails a vulnerable one
+    if ($publishOutput -match 'NU190[1-4].*Microsoft\.DotNet\.ILCompiler') {
+        throw 'dotnet publish failed: NuGet audit reports a vulnerability in the ILCompiler of this .NET SDK, whose runtime NativeAOT compiles into cefkit-helper. Install the current .NET 10 SDK patch.'
+    }
+    throw "dotnet publish failed with exit code $LASTEXITCODE"
+}
 Write-Host "Helper published to $Output"
