@@ -13,6 +13,7 @@ public static unsafe partial class CefRuntime
     private static string? s_directory;
     private static nint s_mainArgs;
     private static volatile bool s_initialized;
+    private static volatile bool s_noZygote;
 
     /// <summary>
     /// A .NET method called by CEF threw. Exceptions must not cross into CEF, so CefKit catches them and reports
@@ -124,19 +125,37 @@ public static unsafe partial class CefRuntime
 
     /// <summary>
     /// Initializes CEF in the browser process. Call <see cref="Shutdown"/> from the same thread before exit.
-    /// Returns false if CEF failed, e.g. its root cache directory is in use by another process.
+    /// Returns false if CEF failed, e.g. its root cache directory is in use by another process; throws
+    /// <see cref="ArgumentException"/> for settings Chromium would end the process for (Linux without NoSandbox).
     /// </summary>
     public static bool Initialize(CefSettings settings, CefApp? app = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
         EnsureLoaded();
+
+        // Without the zygote Chromium requires --no-sandbox and ends the process otherwise
+        var noZygote = OperatingSystem.IsLinux() && !settings.LinuxZygote;
+        if (noZygote && !settings.NoSandbox)
+        {
+            throw new ArgumentException(
+                "On Linux CefKit starts CEF sub-processes without Chromium's zygote, which needs CefSettings.NoSandbox: Chromium ends the process otherwise",
+                nameof(settings));
+        }
+
+        // --no-zygote goes to the browser process command line in OnBeforeCommandLineProcessing, where it also counts
+        // with CommandLineArgsDisabled; that takes an application object
+        s_noZygote = noZygote;
+        if (noZygote)
+        {
+            app ??= new CefApp();
+        }
+
         var native = default(cef_settings_t);
         try
         {
             settings.CopyTo(&native);
-            var arguments = OperatingSystem.IsLinux() && !settings.LinuxZygote ? CreateLinuxMainArgs("--no-zygote") : GetMainArgs();
             var application = app is null ? null : (cef_app_t*)app.AddRefNative();
-            var initialized = Methods.cef_initialize(arguments, &native, application, null) != 0;
+            var initialized = Methods.cef_initialize(GetMainArgs(), &native, application, null) != 0;
             s_initialized = initialized;
             return initialized;
         }
@@ -221,6 +240,18 @@ public static unsafe partial class CefRuntime
     }
 
     /// <summary>
+    /// Switches that CefKit adds to the browser process command line before the application sees it in
+    /// <see cref="CefApp"/>.OnBeforeCommandLineProcessing: --no-zygote on Linux.
+    /// </summary>
+    internal static void AddBrowserSwitches(CefCommandLine commandLine)
+    {
+        if (s_noZygote)
+        {
+            commandLine.AppendSwitch("no-zygote");
+        }
+    }
+
+    /// <summary>
     /// Reports an exception thrown by a .NET method called by CEF.
     /// </summary>
     internal static void ReportCallbackException(Exception exception)
@@ -278,12 +309,12 @@ public static unsafe partial class CefRuntime
     }
 
     /// <summary>
-    /// Linux cef_main_args_t: argv as CEF parses it, the executable and the arguments (--type=... in sub-processes),
-    /// plus extra switches. Kept for the process lifetime: Chromium may keep pointers into argv.
+    /// Linux cef_main_args_t: argv as CEF parses it, the executable and the arguments (--type=... in sub-processes).
+    /// Kept for the process lifetime: Chromium may keep pointers into argv.
     /// </summary>
-    private static Interop.Linux.cef_main_args_t* CreateLinuxMainArgs(params string[] extraSwitches)
+    private static Interop.Linux.cef_main_args_t* CreateLinuxMainArgs()
     {
-        var arguments = Environment.GetCommandLineArgs().Concat(extraSwitches).ToArray();
+        var arguments = Environment.GetCommandLineArgs();
         var argv = (sbyte**)NativeMemory.AllocZeroed((nuint)((arguments.Length + 1) * sizeof(nint)));
         for (var i = 0; i < arguments.Length; i++)
         {

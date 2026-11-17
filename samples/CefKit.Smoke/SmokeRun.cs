@@ -44,6 +44,14 @@ internal static class SmokeRun
             var frames = page.Frames;
             var fps = frames / (double)options.Seconds;
             report.Check($"frames: {frames} in {options.Seconds} s ({fps:F1} fps), {page.PaintKind} {page.PaintSize}", fps >= 10);
+            if (options.SharedTexture)
+            {
+                // Without GPU compositing CEF falls back to CPU buffers, without a GBM device on Linux to no frames at all
+                var (gpu, cpu) = (page.GpuFrames, page.CpuFrames);
+                report.Check($"shared textures: {gpu} frames as GPU textures, {cpu} as CPU buffers" +
+                    (cpu > 0 ? " (no GPU compositing: CEF paints CPU buffers)" : gpu == 0 ? " (no frames: on Linux shared textures need a GBM device)" : string.Empty),
+                    gpu > 0 && cpu == 0);
+            }
 
             // JavaScript through DevTools: no code in the render process
             devTools = await CefDevToolsClient.CreateAsync(browser);

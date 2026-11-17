@@ -15,7 +15,9 @@ public sealed class CefSettings
     public string? BrowserSubprocessPath { get; set; }
 
     /// <summary>
-    /// Disables the Chromium sandbox. True by default: the sandbox needs a special executable setup.
+    /// Disables the Chromium sandbox. True by default: the sandbox needs a special executable setup. On Linux it must
+    /// stay true unless <see cref="LinuxZygote"/> is set, or <see cref="CefRuntime.Initialize"/> throws: sub-processes
+    /// start without the zygote, which Chromium allows only without the sandbox.
     /// </summary>
     public bool NoSandbox { get; set; } = true;
 
@@ -101,9 +103,11 @@ public sealed class CefSettings
     public bool DisableSignalHandlers { get; set; } = OperatingSystem.IsLinux();
 
     /// <summary>
-    /// Linux: start sub-processes through Chromium's zygote. False by default: CEF then starts every sub-process
-    /// directly (--no-zygote on the process command line, ignored with <see cref="CommandLineArgsDisabled"/>),
-    /// which needs <see cref="NoSandbox"/>; with the NativeAOT helper the zygote does not launch children yet.
+    /// Linux, for debugging only: start sub-processes through Chromium's zygote. The zygote launches no children yet,
+    /// neither from cefkit-helper nor from a .NET executable, and Chromium then aborts the whole process ("GPU
+    /// process isn't usable"). False by default: CefKit adds --no-zygote to the browser process command line (also
+    /// with <see cref="CommandLineArgsDisabled"/>) and CEF starts every sub-process directly, which needs
+    /// <see cref="NoSandbox"/>.
     /// </summary>
     public bool LinuxZygote { get; set; }
 

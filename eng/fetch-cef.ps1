@@ -57,10 +57,19 @@ if (-not $valid) {
     }
 }
 
+# The tar of Windows (bsdtar) has bzip2 built in; GNU tar runs a program for it, by default lbzip2 on Ubuntu
+$tarArguments = @('-xf', $archive, '-C', $target, '--strip-components=1')
+if (-not $IsWindows) {
+    $bzip2 = 'lbzip2', 'bzip2' | Where-Object { Get-Command $_ -CommandType Application -ErrorAction SilentlyContinue } |
+        Select-Object -First 1
+    if (-not $bzip2) { throw 'Unpacking the CEF archive (.tar.bz2) needs lbzip2 or bzip2, e.g. sudo apt-get install lbzip2' }
+    $tarArguments = @("--use-compress-program=$bzip2") + $tarArguments
+}
+
 Write-Host "Extracting to $target"
 if (Test-Path $target) { Remove-Item $target -Recurse -Force }
 New-Item -ItemType Directory -Force $target | Out-Null
-tar -xf $archive -C $target --strip-components=1
+tar @tarArguments
 if ($LASTEXITCODE -ne 0) { throw "tar failed with exit code $LASTEXITCODE" }
 Set-Content $marker $expected
 Write-Host "CEF $version ($Platform, $Type) is ready"

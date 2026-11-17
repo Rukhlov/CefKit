@@ -27,7 +27,8 @@ public abstract class CefRenderHandler : CefHandler<cef_render_handler_t>
 
     /// <summary>
     /// A frame as a GPU texture (shared texture mode); the texture is valid during the call only and must be
-    /// copied to a texture of the application.
+    /// copied to a texture of the application. When the system cannot share textures, frames come to
+    /// <see cref="OnPaint"/> or not at all, see <see cref="CefWindowInfo.SharedTextureEnabled"/>.
     /// </summary>
     protected virtual void OnAcceleratedPaint(CefBrowser browser, CefPaintElementType type, ReadOnlySpan<CefRect> dirtyRects, in CefAcceleratedPaintInfo info)
     {

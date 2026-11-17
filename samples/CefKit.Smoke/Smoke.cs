@@ -46,6 +46,12 @@ internal sealed record Options(int Seconds, int Width, int Height, bool SharedTe
 /// </summary>
 internal sealed class SmokeApp(Options options) : CefApp
 {
+    /// <summary>
+    /// Comma-separated list switches: a value is added to the list instead of replacing it.
+    /// </summary>
+    private static readonly HashSet<string> ListSwitches =
+        ["enable-features", "disable-features", "enable-blink-features", "disable-blink-features"];
+
     protected override void OnBeforeCommandLineProcessing(string processType, CefCommandLine commandLine)
     {
         if (processType.Length != 0)
@@ -66,6 +72,11 @@ internal sealed class SmokeApp(Options options) : CefApp
             {
                 commandLine.AppendSwitch(item);
             }
+            else if (ListSwitches.Contains(item[..separator]))
+            {
+                // CEF has its own entries there, e.g. the features it turns off
+                commandLine.AppendToListSwitch(item[..separator], item[(separator + 1)..]);
+            }
             else
             {
                 commandLine.AppendSwitch(item[..separator], item[(separator + 1)..]);
@@ -81,7 +92,8 @@ internal sealed class SmokePage
 {
     private readonly int _width;
     private readonly int _height;
-    private int _frames;
+    private int _cpuFrames;
+    private int _gpuFrames;
     private TaskCompletionSource _loaded = NewSignal();
 
     public SmokePage(int width, int height)
@@ -111,13 +123,27 @@ internal sealed class SmokePage
 
     public CefRequestHandler Requests { get; }
 
-    public int Frames => Volatile.Read(ref _frames);
+    public int Frames => CpuFrames + GpuFrames;
+
+    /// <summary>
+    /// Frames as CPU buffers (OnPaint).
+    /// </summary>
+    public int CpuFrames => Volatile.Read(ref _cpuFrames);
+
+    /// <summary>
+    /// Frames as GPU textures (OnAcceleratedPaint).
+    /// </summary>
+    public int GpuFrames => Volatile.Read(ref _gpuFrames);
 
     public string PaintKind { get; private set; } = "no paints";
 
     public string PaintSize { get; private set; } = string.Empty;
 
-    public void ResetFrames() => Interlocked.Exchange(ref _frames, 0);
+    public void ResetFrames()
+    {
+        Interlocked.Exchange(ref _cpuFrames, 0);
+        Interlocked.Exchange(ref _gpuFrames, 0);
+    }
 
     public void ResetLoad() => _loaded = NewSignal();
 
@@ -176,7 +202,7 @@ internal sealed class SmokePage
         {
             if (type == CefPaintElementType.View)
             {
-                Interlocked.Increment(ref page._frames);
+                Interlocked.Increment(ref page._cpuFrames);
                 page.PaintKind = "CPU buffer";
                 page.PaintSize = $"{width}x{height}";
             }
@@ -186,7 +212,7 @@ internal sealed class SmokePage
         {
             if (type == CefPaintElementType.View)
             {
-                Interlocked.Increment(ref page._frames);
+                Interlocked.Increment(ref page._gpuFrames);
                 var (width, height) = info.CodedSize;
                 page.PaintKind = OperatingSystem.IsWindows()
                     ? $"shared texture {(info.SharedTextureHandle != 0 ? "with handle" : "WITHOUT handle")}"
@@ -262,7 +288,8 @@ internal static class Processes
 {
     public static string Describe(string subprocess)
     {
-        var name = Path.GetFileNameWithoutExtension(subprocess);
+        // Process names have no .exe on Windows; on Linux the name is the file name, and "CefKit.Smoke" has no extension
+        var name = OperatingSystem.IsWindows() ? Path.GetFileNameWithoutExtension(subprocess) : Path.GetFileName(subprocess);
         var self = Environment.ProcessId;
         var children = Process.GetProcessesByName(name).Where(p => p.Id != self).ToList();
         var childMemory = children.Sum(PrivateBytes) / (1024.0 * 1024);

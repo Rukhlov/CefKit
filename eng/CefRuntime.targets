@@ -9,10 +9,18 @@
 
   <Import Project="CefVersion.props" />
 
+  <!-- libcef.so of the Linux distribution keeps its debug symbols (1.4 GB): the runtime files are hard links in the
+       output and publish directories rather than copies (a copy across volumes) -->
+  <PropertyGroup Condition="'$(CefKitCopyRuntime)' == 'true'">
+    <CreateHardLinksForAdditionalFilesIfPossible>true</CreateHardLinksForAdditionalFilesIfPossible>
+    <CreateHardLinksForPublishFilesIfPossible>true</CreateHardLinksForPublishFilesIfPossible>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(CefKitCopyRuntime)' == 'true'">
-    <!-- Import libraries and the sandbox bootstrap executables are not needed at run time -->
+    <!-- Not needed at run time: import libraries, the sandbox bootstrap executables (Windows) and the setuid sandbox
+         (Linux), since CefKit runs without the Chromium sandbox -->
     <None Include="$(CefKitDistributionDir)Release\**\*"
-          Exclude="$(CefKitDistributionDir)Release\**\*.lib;$(CefKitDistributionDir)Release\bootstrap*.exe"
+          Exclude="$(CefKitDistributionDir)Release\**\*.lib;$(CefKitDistributionDir)Release\bootstrap*.exe;$(CefKitDistributionDir)Release\chrome-sandbox"
           Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
     <None Include="$(CefKitDistributionDir)Resources\**\*"
           Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
