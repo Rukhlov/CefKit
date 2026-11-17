@@ -4,6 +4,8 @@ CefKit is a public .NET 10 binding to the CEF C API for Windows and Linux x64: i
 a thin managed layer, and a NativeAOT sub-process executable. It stays generic: no concepts of a particular
 application in its code or API.
 
+State and the work that is left: `ROADMAP.md`. Keep it current when a step is done or a finding changes it.
+
 ## Structure
 
 - `cef-version.json` — the only place with the CEF version, the pinned CEF API version and the revision of the

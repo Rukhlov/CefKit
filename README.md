@@ -15,7 +15,7 @@ Windows and Linux x64.
 
 Status: early. The API covers what an embedder of off-screen and windowed pages needs and grows on demand; the
 raw interop covers the whole C API. The smoke check passes on Windows and on Linux (Ubuntu 24.04 with Xvfb,
-software rendering) in CI.
+software rendering) in CI. What is left: [ROADMAP.md](ROADMAP.md).
 
 CEF binaries are the standard builds from the [Spotify CDN](https://cef-builds.spotifycdn.com/index.html). They
 have no proprietary codecs (H.264, AAC, HEVC): a build with them is a separate runtime, and its patent licensing
